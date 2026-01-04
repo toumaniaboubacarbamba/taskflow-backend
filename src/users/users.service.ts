@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -37,11 +37,16 @@ export class UsersService {
   }
 
   async findAll(): Promise<User[]> {
-    return this.userModel.find().select('-password').exec();
+    return this.userModel.find().exec();
   }
 
   async findOne(id: string): Promise<User> {
-    const user = await this.userModel.findById(id).select('-password').exec();
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Invalid user ID');
+    }
+
+    const user = await this.userModel.findById(id).exec();
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -53,6 +58,10 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Invalid user ID');
+    }
+
     // Si le mot de passe est mis à jour, on le hash
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
@@ -60,7 +69,6 @@ export class UsersService {
 
     const updatedUser = await this.userModel
       .findByIdAndUpdate(id, updateUserDto, { new: true })
-      .select('-password')
       .exec();
 
     if (!updatedUser) {
@@ -70,7 +78,18 @@ export class UsersService {
     return updatedUser;
   }
 
+  async findById(id: string): Promise<User> {
+    const user = await this.userModel.findById(id).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
   async remove(id: string): Promise<void> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Invalid user ID');
+    }
+
     const result = await this.userModel.findByIdAndDelete(id).exec();
 
     if (!result) {

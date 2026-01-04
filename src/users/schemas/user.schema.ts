@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 // src/users/schemas/user.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-import { Exclude } from 'class-transformer';
+import { Document, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
@@ -10,6 +8,9 @@ export type UserDocument = User & Document;
   timestamps: true,
 })
 export class User {
+  _id: Types.ObjectId; // Ajoute cette ligne
+  id: string;
+
   @Prop({
     required: true,
     unique: true,
@@ -26,9 +27,8 @@ export class User {
 
   @Prop({
     required: true,
-    select: false, // Exclut le password des requêtes par défaut
+    select: false,
   })
-  @Exclude() // Exclut lors de la sérialisation avec class-transformer
   password: string;
 
   @Prop({
@@ -40,9 +40,13 @@ export class User {
   @Prop({ default: true })
   isActive: boolean;
 
-  // Ces champs sont ajoutés automatiquement par timestamps: true
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// Ajoute un getter pour id
+UserSchema.virtual('id').get(function () {
+  return this._id.toHexString();
+});
